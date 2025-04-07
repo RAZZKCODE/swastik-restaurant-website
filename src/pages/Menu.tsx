@@ -3,6 +3,8 @@ import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MenuItem from '@/components/menu/MenuItem';
+import Cart from '@/components/cart/Cart';
 
 // Sample menu data
 const menuData = {
@@ -238,6 +240,9 @@ const Menu = () => {
       {/* Menu Section */}
       <section className="py-16 md:py-24 menu-pattern">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-end mb-4">
+            <Cart />
+          </div>
           <Tabs defaultValue="appetizers" className="w-full">
             <div className="flex justify-center mb-12">
               <TabsList className="grid md:grid-cols-5 grid-cols-2 md:grid-rows-1 grid-rows-3 gap-2">

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -108,7 +107,7 @@ const menuData = {
       name: "Jeera Rice",
       description: "Basmati rice flavored with cumin seeds and mild spices.",
       price: "$8.99",
-      image: "https://images.unsplash.com/photo-1596797038530-2c107aa8e1fa?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1075&q=80",
+      image: "https://images.unsplash.com/photo-1596797038530-2c107aa8e1fa?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fA%3D%3D&auto=format&fit=crop&w=1075&q=80",
       vegetarian: true,
       spicy: false
     }
@@ -166,44 +165,11 @@ const menuData = {
       name: "Fresh Lime Soda",
       description: "Refreshing lime juice with soda water, served sweet or salted as per preference.",
       price: "$3.99",
-      image: "https://images.unsplash.com/photo-1558383817-256508bdf49f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80",
+      image: "https://images.unsplash.com/photo-1558383817-256508bdf49f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80",
       vegetarian: true,
       spicy: false
     }
   ]
-};
-
-const MenuItem = ({ item }: { item: any }) => {
-  return (
-    <div className="flex flex-col md:flex-row bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition">
-      <div className="md:w-1/3 h-48 md:h-auto overflow-hidden">
-        <img 
-          src={item.image} 
-          alt={item.name} 
-          className="w-full h-full object-cover transition duration-300 hover:scale-105"
-        />
-      </div>
-      <div className="md:w-2/3 p-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-serif font-bold">{item.name}</h3>
-          <span className="text-lg font-bold text-spice-600">{item.price}</span>
-        </div>
-        <div className="flex space-x-2 my-2">
-          {item.vegetarian && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Vegetarian
-            </span>
-          )}
-          {item.spicy && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-              Spicy
-            </span>
-          )}
-        </div>
-        <p className="text-gray-600 mt-2">{item.description}</p>
-      </div>
-    </div>
-  );
 };
 
 const Menu = () => {

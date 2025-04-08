@@ -1,11 +1,13 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -29,9 +31,29 @@ const Navbar = () => {
             <Link to="/menu" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Menu</Link>
             <Link to="/gallery" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Gallery</Link>
             <Link to="/contact" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Contact</Link>
-            <Button className="bg-restaurant-500 hover:bg-restaurant-600 text-white">
-              <Link to="/contact?reserve=true">Reserve Table</Link>
-            </Button>
+            
+            {isAuthenticated ? (
+              <>
+                <Link to="/profile" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150 flex items-center">
+                  <User size={18} className="mr-1" />
+                  {user?.name?.split(' ')[0] || 'Profile'}
+                </Link>
+                <Button 
+                  variant="outline" 
+                  onClick={logout} 
+                  className="text-restaurant-700 border-restaurant-500 hover:bg-restaurant-50"
+                >
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Login</Link>
+                <Button className="bg-restaurant-500 hover:bg-restaurant-600 text-white">
+                  <Link to="/signup">Sign Up</Link>
+                </Button>
+              </>
+            )}
           </div>
           
           {/* Mobile Menu Button */}
@@ -52,9 +74,32 @@ const Navbar = () => {
             <Link to="/menu" className="text-gray-800 hover:text-restaurant-500 font-medium" onClick={() => setIsOpen(false)}>Menu</Link>
             <Link to="/gallery" className="text-gray-800 hover:text-restaurant-500 font-medium" onClick={() => setIsOpen(false)}>Gallery</Link>
             <Link to="/contact" className="text-gray-800 hover:text-restaurant-500 font-medium" onClick={() => setIsOpen(false)}>Contact</Link>
-            <Button className="bg-restaurant-500 hover:bg-restaurant-600 text-white w-full">
-              <Link to="/contact?reserve=true" onClick={() => setIsOpen(false)}>Reserve Table</Link>
-            </Button>
+            
+            {isAuthenticated ? (
+              <>
+                <Link to="/profile" className="text-gray-800 hover:text-restaurant-500 font-medium flex items-center" onClick={() => setIsOpen(false)}>
+                  <User size={18} className="mr-1" />
+                  {user?.name?.split(' ')[0] || 'Profile'}
+                </Link>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    logout();
+                    setIsOpen(false);
+                  }} 
+                  className="text-restaurant-700 border-restaurant-500 hover:bg-restaurant-50"
+                >
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="text-gray-800 hover:text-restaurant-500 font-medium" onClick={() => setIsOpen(false)}>Login</Link>
+                <Button className="bg-restaurant-500 hover:bg-restaurant-600 text-white w-full">
+                  <Link to="/signup" onClick={() => setIsOpen(false)}>Sign Up</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}

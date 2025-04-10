@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UserManagement from "@/components/admin/UserManagement";
+import OrderManagement from "@/components/admin/OrderManagement";
+import SettingsManagement from "@/components/admin/SettingsManagement";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -51,15 +53,7 @@ const AdminDashboard = () => {
               </TabsContent>
               
               <TabsContent value="orders">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Order Management</CardTitle>
-                    <CardDescription>View and manage customer orders.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-500">Order management functionality will be implemented here.</p>
-                  </CardContent>
-                </Card>
+                <OrderManagement />
               </TabsContent>
               
               <TabsContent value="menu">
@@ -75,15 +69,7 @@ const AdminDashboard = () => {
               </TabsContent>
               
               <TabsContent value="settings">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Restaurant Settings</CardTitle>
-                    <CardDescription>Configure restaurant settings.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-500">Settings management functionality will be implemented here.</p>
-                  </CardContent>
-                </Card>
+                <SettingsManagement />
               </TabsContent>
             </Tabs>
           </div>

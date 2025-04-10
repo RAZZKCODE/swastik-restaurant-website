@@ -4,6 +4,7 @@ export interface User {
   email: string;
   name?: string;
   isAdmin?: boolean;
+  password?: string; // Added password field (not included in client-side User object)
 }
 
 export interface AuthContextType {

@@ -23,13 +23,14 @@ const InitAdmin = () => {
       const adminUser = {
         id: 'admin-' + Date.now().toString(),
         email: 'admin@swastik.com',
+        password: 'admin123', // Adding a simple password for demo
         name: 'Admin User',
         isAdmin: true
       };
       
       storedUsers.push(adminUser);
       localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(storedUsers));
-      console.log('Admin user created:', adminUser.email);
+      console.log('Admin user created:', adminUser.email, 'Password:', adminUser.password);
     }
   }, []);
   

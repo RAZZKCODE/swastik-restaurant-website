@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Get users from localStorage
-  const getUsers = (): User[] => {
+  const getUsers = (): any[] => {
     const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
     if (!usersJson) return [];
     try {
@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Save users to localStorage
-  const saveUsers = (users: User[]) => {
+  const saveUsers = (users: any[]) => {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
   };
 
@@ -61,12 +61,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Invalid email or password');
       }
       
-      // Note: In a real app, you'd verify the password with bcrypt or similar
-      // This is just a simple mock for demonstration
+      // Check password
+      if (foundUser.password && foundUser.password !== password) {
+        throw new Error('Invalid email or password');
+      }
       
-      // Set the logged in user
-      setUser(foundUser);
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(foundUser));
+      // Set the logged in user (remove password from stored user)
+      const { password: _, ...userWithoutPassword } = foundUser;
+      
+      setUser(userWithoutPassword);
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userWithoutPassword));
+      
       toast({
         title: 'Login Successful',
         description: `Welcome back${foundUser.name ? ', ' + foundUser.name : ''}!`,

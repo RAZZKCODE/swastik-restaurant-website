@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,10 +8,18 @@ import { useAuth } from '@/contexts/AuthContext';
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
+  const location = useLocation();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
+
+  const isAdmin = user?.isAdmin === true;
 
   return (
     <nav className="bg-white/90 backdrop-blur-sm shadow-sm sticky top-0 z-50">
@@ -39,7 +47,7 @@ const Navbar = () => {
                   {user?.name?.split(' ')[0] || 'Profile'}
                 </Link>
                 
-                {user?.isAdmin && (
+                {isAdmin && (
                   <Link to="/admin" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150 flex items-center">
                     <ShieldCheck size={18} className="mr-1" />
                     Admin
@@ -77,21 +85,21 @@ const Navbar = () => {
       {isOpen && (
         <div className="md:hidden">
           <div className="flex flex-col space-y-4 px-4 pt-2 pb-6 bg-white">
-            <Link to="/" className="text-gray-800 hover:text-restaurant-500 font-medium" onClick={() => setIsOpen(false)}>Home</Link>
-            <Link to="/about" className="text-gray-800 hover:text-restaurant-500 font-medium" onClick={() => setIsOpen(false)}>About</Link>
-            <Link to="/menu" className="text-gray-800 hover:text-restaurant-500 font-medium" onClick={() => setIsOpen(false)}>Menu</Link>
-            <Link to="/gallery" className="text-gray-800 hover:text-restaurant-500 font-medium" onClick={() => setIsOpen(false)}>Gallery</Link>
-            <Link to="/contact" className="text-gray-800 hover:text-restaurant-500 font-medium" onClick={() => setIsOpen(false)}>Contact</Link>
+            <Link to="/" className="text-gray-800 hover:text-restaurant-500 font-medium">Home</Link>
+            <Link to="/about" className="text-gray-800 hover:text-restaurant-500 font-medium">About</Link>
+            <Link to="/menu" className="text-gray-800 hover:text-restaurant-500 font-medium">Menu</Link>
+            <Link to="/gallery" className="text-gray-800 hover:text-restaurant-500 font-medium">Gallery</Link>
+            <Link to="/contact" className="text-gray-800 hover:text-restaurant-500 font-medium">Contact</Link>
             
             {isAuthenticated ? (
               <>
-                <Link to="/profile" className="text-gray-800 hover:text-restaurant-500 font-medium flex items-center" onClick={() => setIsOpen(false)}>
+                <Link to="/profile" className="text-gray-800 hover:text-restaurant-500 font-medium flex items-center">
                   <User size={18} className="mr-1" />
                   {user?.name?.split(' ')[0] || 'Profile'}
                 </Link>
                 
-                {user?.isAdmin && (
-                  <Link to="/admin" className="text-gray-800 hover:text-restaurant-500 font-medium flex items-center" onClick={() => setIsOpen(false)}>
+                {isAdmin && (
+                  <Link to="/admin" className="text-gray-800 hover:text-restaurant-500 font-medium flex items-center">
                     <ShieldCheck size={18} className="mr-1" />
                     Admin
                   </Link>
@@ -99,10 +107,7 @@ const Navbar = () => {
                 
                 <Button 
                   variant="outline" 
-                  onClick={() => {
-                    logout();
-                    setIsOpen(false);
-                  }} 
+                  onClick={logout} 
                   className="text-restaurant-700 border-restaurant-500 hover:bg-restaurant-50"
                 >
                   Logout
@@ -110,9 +115,9 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <Link to="/login" className="text-gray-800 hover:text-restaurant-500 font-medium" onClick={() => setIsOpen(false)}>Login</Link>
+                <Link to="/login" className="text-gray-800 hover:text-restaurant-500 font-medium">Login</Link>
                 <Button className="bg-restaurant-500 hover:bg-restaurant-600 text-white w-full">
-                  <Link to="/signup" onClick={() => setIsOpen(false)}>Sign Up</Link>
+                  <Link to="/signup">Sign Up</Link>
                 </Button>
               </>
             )}

@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ShieldCheck, User } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
@@ -12,7 +14,8 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, error } = useAuth();
+  const [activeTab, setActiveTab] = useState('user');
+  const { login, adminLogin, error } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,8 +23,13 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      await login(email, password);
-      navigate('/');
+      if (activeTab === 'admin') {
+        await adminLogin(email, password);
+        navigate('/admin'); // Redirect to admin dashboard
+      } else {
+        await login(email, password);
+        navigate('/'); // Redirect to home
+      }
     } catch (err) {
       // Error is handled in the auth context
       console.error(err);
@@ -48,6 +56,19 @@ const Login = () => {
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="user" className="flex items-center justify-center">
+                  <User size={16} className="mr-2" />
+                  User Login
+                </TabsTrigger>
+                <TabsTrigger value="admin" className="flex items-center justify-center">
+                  <ShieldCheck size={16} className="mr-2" />
+                  Admin Login
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
             <form className="space-y-6" onSubmit={handleSubmit}>
               {error && (
                 <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
@@ -57,7 +78,7 @@ const Login = () => {
               
               <div>
                 <Label htmlFor="email">
-                  Email address
+                  {activeTab === 'admin' ? 'Admin Email' : 'Email address'}
                 </Label>
                 <div className="mt-1">
                   <Input
@@ -68,6 +89,7 @@ const Login = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    placeholder={activeTab === 'admin' ? 'admin@swastik.com' : 'Enter your email'}
                   />
                 </div>
               </div>
@@ -81,10 +103,11 @@ const Login = () => {
                     id="password"
                     name="password"
                     type="password"
-                    autoComplete="current-password"
+                    autoComplete={activeTab === 'admin' ? 'admin-password' : 'current-password'}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    placeholder={activeTab === 'admin' ? 'Admin password' : 'Enter your password'}
                   />
                 </div>
               </div>
@@ -92,12 +115,20 @@ const Login = () => {
               <div>
                 <Button
                   type="submit"
-                  className="w-full bg-restaurant-600 hover:bg-restaurant-700"
+                  className={`w-full ${activeTab === 'admin' 
+                    ? 'bg-slate-700 hover:bg-slate-800' 
+                    : 'bg-restaurant-600 hover:bg-restaurant-700'}`}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? 'Logging in...' : 'Login'}
+                  {isSubmitting ? 'Logging in...' : activeTab === 'admin' ? 'Login as Admin' : 'Login'}
                 </Button>
               </div>
+
+              {activeTab === 'admin' && (
+                <div className="mt-2 text-center text-sm text-gray-600">
+                  <p>Default admin: admin@swastik.com / admin123</p>
+                </div>
+              )}
             </form>
           </div>
         </div>

@@ -3,6 +3,7 @@ export interface User {
   id: string;
   email: string;
   name?: string;
+  isAdmin?: boolean;
 }
 
 export interface AuthContextType {
@@ -10,7 +11,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name?: string) => Promise<void>;
+  signup: (email: string, password: string, name?: string, isAdmin?: boolean) => Promise<void>;
   logout: () => void;
   error: string | null;
 }

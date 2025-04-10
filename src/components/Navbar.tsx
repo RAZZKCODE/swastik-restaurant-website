@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, User } from 'lucide-react';
+import { Menu, X, User, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -38,6 +38,14 @@ const Navbar = () => {
                   <User size={18} className="mr-1" />
                   {user?.name?.split(' ')[0] || 'Profile'}
                 </Link>
+                
+                {user?.isAdmin && (
+                  <Link to="/admin" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150 flex items-center">
+                    <ShieldCheck size={18} className="mr-1" />
+                    Admin
+                  </Link>
+                )}
+                
                 <Button 
                   variant="outline" 
                   onClick={logout} 
@@ -81,6 +89,14 @@ const Navbar = () => {
                   <User size={18} className="mr-1" />
                   {user?.name?.split(' ')[0] || 'Profile'}
                 </Link>
+                
+                {user?.isAdmin && (
+                  <Link to="/admin" className="text-gray-800 hover:text-restaurant-500 font-medium flex items-center" onClick={() => setIsOpen(false)}>
+                    <ShieldCheck size={18} className="mr-1" />
+                    Admin
+                  </Link>
+                )}
+                
                 <Button 
                   variant="outline" 
                   onClick={() => {

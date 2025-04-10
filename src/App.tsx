@@ -16,6 +16,9 @@ import Profile from "./pages/Profile";
 import OrderDetails from "./pages/OrderDetails";
 import NotFound from "./pages/NotFound";
 import { CartProvider } from "./contexts/CartContext";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminRoute from "./components/AdminRoute";
+import InitAdmin from "./components/InitAdmin";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +42,7 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <CartProvider>
+          <InitAdmin />
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -66,6 +70,17 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
+              
+              {/* Admin Routes */}
+              <Route 
+                path="/admin" 
+                element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                } 
+              />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

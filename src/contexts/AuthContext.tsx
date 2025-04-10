@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, password: string, name?: string) => {
+  const signup = async (email: string, password: string, name?: string, isAdmin?: boolean) => {
     setIsLoading(true);
     setError(null);
     
@@ -100,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: Date.now().toString(), // Simple ID generation
         email,
         name,
+        isAdmin,
       };
       
       // Save the new user

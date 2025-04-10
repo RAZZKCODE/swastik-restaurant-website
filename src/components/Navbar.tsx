@@ -34,33 +34,50 @@ const Navbar = () => {
           
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Home</Link>
-            <Link to="/about" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">About</Link>
-            <Link to="/menu" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Menu</Link>
-            <Link to="/gallery" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Gallery</Link>
-            <Link to="/contact" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Contact</Link>
+            {/* Always show main navigation links unless on admin page */}
+            {!isAdmin && (
+              <>
+                <Link to="/" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Home</Link>
+                <Link to="/about" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">About</Link>
+                <Link to="/menu" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Menu</Link>
+                <Link to="/gallery" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Gallery</Link>
+                <Link to="/contact" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150">Contact</Link>
+              </>
+            )}
             
             {isAuthenticated ? (
               <>
-                <Link to="/profile" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150 flex items-center">
-                  <User size={18} className="mr-1" />
-                  {user?.name?.split(' ')[0] || 'Profile'}
-                </Link>
-                
-                {isAdmin && (
-                  <Link to="/admin" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150 flex items-center">
-                    <ShieldCheck size={18} className="mr-1" />
-                    Admin
-                  </Link>
+                {isAdmin ? (
+                  // Admin-specific navigation
+                  <>
+                    <Link to="/admin" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150 flex items-center">
+                      <ShieldCheck size={18} className="mr-1" />
+                      Admin Dashboard
+                    </Link>
+                    <Button 
+                      variant="outline" 
+                      onClick={logout} 
+                      className="text-restaurant-700 border-restaurant-500 hover:bg-restaurant-50"
+                    >
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  // Regular user navigation
+                  <>
+                    <Link to="/profile" className="text-gray-800 hover:text-restaurant-500 font-medium transition duration-150 flex items-center">
+                      <User size={18} className="mr-1" />
+                      {user?.name?.split(' ')[0] || 'Profile'}
+                    </Link>
+                    <Button 
+                      variant="outline" 
+                      onClick={logout} 
+                      className="text-restaurant-700 border-restaurant-500 hover:bg-restaurant-50"
+                    >
+                      Logout
+                    </Button>
+                  </>
                 )}
-                
-                <Button 
-                  variant="outline" 
-                  onClick={logout} 
-                  className="text-restaurant-700 border-restaurant-500 hover:bg-restaurant-50"
-                >
-                  Logout
-                </Button>
               </>
             ) : (
               <>
@@ -85,33 +102,50 @@ const Navbar = () => {
       {isOpen && (
         <div className="md:hidden">
           <div className="flex flex-col space-y-4 px-4 pt-2 pb-6 bg-white">
-            <Link to="/" className="text-gray-800 hover:text-restaurant-500 font-medium">Home</Link>
-            <Link to="/about" className="text-gray-800 hover:text-restaurant-500 font-medium">About</Link>
-            <Link to="/menu" className="text-gray-800 hover:text-restaurant-500 font-medium">Menu</Link>
-            <Link to="/gallery" className="text-gray-800 hover:text-restaurant-500 font-medium">Gallery</Link>
-            <Link to="/contact" className="text-gray-800 hover:text-restaurant-500 font-medium">Contact</Link>
+            {/* Mobile menu options */}
+            {!isAdmin && (
+              <>
+                <Link to="/" className="text-gray-800 hover:text-restaurant-500 font-medium">Home</Link>
+                <Link to="/about" className="text-gray-800 hover:text-restaurant-500 font-medium">About</Link>
+                <Link to="/menu" className="text-gray-800 hover:text-restaurant-500 font-medium">Menu</Link>
+                <Link to="/gallery" className="text-gray-800 hover:text-restaurant-500 font-medium">Gallery</Link>
+                <Link to="/contact" className="text-gray-800 hover:text-restaurant-500 font-medium">Contact</Link>
+              </>
+            )}
             
             {isAuthenticated ? (
               <>
-                <Link to="/profile" className="text-gray-800 hover:text-restaurant-500 font-medium flex items-center">
-                  <User size={18} className="mr-1" />
-                  {user?.name?.split(' ')[0] || 'Profile'}
-                </Link>
-                
-                {isAdmin && (
-                  <Link to="/admin" className="text-gray-800 hover:text-restaurant-500 font-medium flex items-center">
-                    <ShieldCheck size={18} className="mr-1" />
-                    Admin
-                  </Link>
+                {isAdmin ? (
+                  // Admin-specific mobile navigation
+                  <>
+                    <Link to="/admin" className="text-gray-800 hover:text-restaurant-500 font-medium flex items-center">
+                      <ShieldCheck size={18} className="mr-1" />
+                      Admin Dashboard
+                    </Link>
+                    <Button 
+                      variant="outline" 
+                      onClick={logout} 
+                      className="text-restaurant-700 border-restaurant-500 hover:bg-restaurant-50"
+                    >
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  // Regular user mobile navigation
+                  <>
+                    <Link to="/profile" className="text-gray-800 hover:text-restaurant-500 font-medium flex items-center">
+                      <User size={18} className="mr-1" />
+                      {user?.name?.split(' ')[0] || 'Profile'}
+                    </Link>
+                    <Button 
+                      variant="outline" 
+                      onClick={logout} 
+                      className="text-restaurant-700 border-restaurant-500 hover:bg-restaurant-50"
+                    >
+                      Logout
+                    </Button>
+                  </>
                 )}
-                
-                <Button 
-                  variant="outline" 
-                  onClick={logout} 
-                  className="text-restaurant-700 border-restaurant-500 hover:bg-restaurant-50"
-                >
-                  Logout
-                </Button>
               </>
             ) : (
               <>

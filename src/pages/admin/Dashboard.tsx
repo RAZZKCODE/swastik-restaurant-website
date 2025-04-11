@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UserManagement from "@/components/admin/UserManagement";
 import OrderManagement from "@/components/admin/OrderManagement";
 import SettingsManagement from "@/components/admin/SettingsManagement";
+import MenuManagement from "@/components/admin/MenuManagement";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -57,15 +58,7 @@ const AdminDashboard = () => {
               </TabsContent>
               
               <TabsContent value="menu">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Menu Management</CardTitle>
-                    <CardDescription>Add, edit, or remove menu items.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-500">Menu management functionality will be implemented here.</p>
-                  </CardContent>
-                </Card>
+                <MenuManagement />
               </TabsContent>
               
               <TabsContent value="settings">

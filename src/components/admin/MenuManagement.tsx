@@ -126,9 +126,16 @@ const MenuManagement = () => {
 
   // Handler for adding a new menu item
   const handleAddItem = (data: MenuItemFormValues) => {
+    // Fix: Ensure all required fields are provided by explicitly setting them
     const newItem: MenuItem = {
       id: menuItems.length > 0 ? Math.max(...menuItems.map(item => item.id)) + 1 : 1,
-      ...data
+      name: data.name,
+      description: data.description,
+      price: data.price,
+      category: data.category,
+      image: data.image,
+      vegetarian: data.vegetarian,
+      spicy: data.spicy
     };
     
     setMenuItems([...menuItems, newItem]);
@@ -145,8 +152,20 @@ const MenuManagement = () => {
   const handleEditItem = (data: MenuItemFormValues) => {
     if (!currentItem) return;
     
+    // Fix: Create a properly typed updated item
+    const updatedItem: MenuItem = {
+      id: currentItem.id,
+      name: data.name,
+      description: data.description,
+      price: data.price,
+      category: data.category,
+      image: data.image,
+      vegetarian: data.vegetarian,
+      spicy: data.spicy
+    };
+    
     const updatedItems = menuItems.map(item => 
-      item.id === currentItem.id ? { ...item, ...data } : item
+      item.id === currentItem.id ? updatedItem : item
     );
     
     setMenuItems(updatedItems);

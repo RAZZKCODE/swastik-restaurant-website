@@ -3,6 +3,18 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { User, AuthContextType } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+
+// Helper function to convert Supabase User to our app's User type
+const mapSupabaseUser = (supabaseUser: SupabaseUser | null): User | null => {
+  if (!supabaseUser) return null;
+  
+  return {
+    id: supabaseUser.id,
+    email: supabaseUser.email || '', // Convert optional email to required email
+    name: supabaseUser.user_metadata?.name || undefined,
+  };
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -16,14 +28,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setUser(session?.user ?? null);
+        setUser(mapSupabaseUser(session?.user ?? null));
         setIsLoading(false);
       }
     );
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      setUser(mapSupabaseUser(session?.user ?? null));
       setIsLoading(false);
     });
 
@@ -35,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -64,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     
     try {
-      const { data: { user }, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -75,11 +87,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', user?.id)
+        .eq('id', data.user?.id)
         .single();
       
       if (!profile || profile.role !== 'admin') {
+        // Sign out if not admin
+        await supabase.auth.signOut();
         throw new Error('Not authorized as admin');
+      }
+      
+      // Add isAdmin flag to the user object
+      if (data.user) {
+        setUser({
+          ...mapSupabaseUser(data.user)!,
+          isAdmin: true
+        });
       }
       
       toast({

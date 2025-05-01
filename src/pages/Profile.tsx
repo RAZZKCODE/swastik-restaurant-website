@@ -9,17 +9,14 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-// Sample order data
-const sampleOrders = [
-  { id: '12345', date: '2025-04-07', status: 'Delivered', total: '$35.96' },
-  { id: '12346', date: '2025-04-08', status: 'Preparing', total: '$42.50' },
-  { id: '12347', date: '2025-04-08', status: 'Out for Delivery', total: '$28.75' },
-];
+import { Badge } from '@/components/ui/badge';
+import { useOrders } from '@/hooks/use-orders';
+import { formatDistanceToNow } from 'date-fns';
 
 const Profile = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { orders, isLoading: ordersLoading } = useOrders();
   
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -27,6 +24,34 @@ const Profile = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // Function to get appropriate badge color based on order status
+  const getStatusBadgeColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'processing':
+      case 'preparing':
+        return 'bg-blue-100 text-blue-800';
+      case 'out for delivery':
+        return 'bg-purple-100 text-purple-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
@@ -85,9 +110,13 @@ const Profile = () => {
                     <CardTitle>Recent Orders</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {sampleOrders.length > 0 ? (
+                    {ordersLoading ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">Loading your orders...</p>
+                      </div>
+                    ) : orders.length > 0 ? (
                       <div className="divide-y divide-gray-200">
-                        {sampleOrders.map((order) => (
+                        {orders.map((order) => (
                           <div key={order.id} className="py-4">
                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
                               <div>
@@ -95,15 +124,15 @@ const Profile = () => {
                                   to={`/orders/${order.id}`}
                                   className="text-restaurant-600 hover:text-restaurant-700 font-medium"
                                 >
-                                  Order #{order.id}
+                                  Order #{order.id.split('-')[0]}
                                 </Link>
-                                <p className="text-sm text-gray-500">{order.date}</p>
+                                <p className="text-sm text-gray-500">{formatDate(order.created_at)}</p>
                               </div>
                               <div className="mt-2 sm:mt-0 flex flex-col sm:items-end">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  {order.status}
-                                </span>
-                                <p className="text-sm font-medium text-gray-900 mt-1">{order.total}</p>
+                                <Badge className={getStatusBadgeColor(order.status)}>
+                                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                </Badge>
+                                <p className="text-sm font-medium text-gray-900 mt-1">${order.total.toFixed(2)}</p>
                               </div>
                             </div>
                             <div className="mt-2">

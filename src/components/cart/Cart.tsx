@@ -1,10 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { ShoppingCart, X, Plus, Minus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Cart = () => {
   const { 
@@ -17,16 +19,85 @@ const Cart = () => {
     totalItems,
     totalPrice
   } = useCart();
+  const { user, isAuthenticated } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const navigate = useNavigate();
 
-  const handleCheckout = () => {
-    // This would connect to a payment processor in a real app
-    toast({
-      title: "Order Placed",
-      description: "Your order has been placed successfully!",
-      duration: 3000,
-    });
-    clearCart();
-    setIsCartOpen(false);
+  const handleCheckout = async () => {
+    if (!isAuthenticated || !user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to place an order",
+        variant: "destructive",
+      });
+      setIsCartOpen(false);
+      navigate('/login');
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      toast({
+        title: "Cart Empty",
+        description: "Please add items to your cart before checking out",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      // Create order in database
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          total: totalPrice,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create order items
+      const orderItems = cartItems.map(item => ({
+        order_id: order.id,
+        item_id: parseInt(item.id),
+        name: item.name,
+        price: parseFloat(item.price.replace('$', '')),
+        quantity: item.quantity,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // Success
+      toast({
+        title: "Order Placed",
+        description: "Your order has been placed successfully!",
+      });
+      
+      clearCart();
+      setIsCartOpen(false);
+      
+      // Navigate to order details
+      navigate(`/orders/${order.id}`);
+
+    } catch (err) {
+      console.error('Checkout error:', err);
+      const message = (err as Error).message;
+      toast({
+        title: "Checkout Failed",
+        description: message || "There was a problem placing your order",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -135,9 +206,15 @@ const Cart = () => {
                   <Button 
                     className="w-full mt-4 bg-restaurant-500 hover:bg-restaurant-600"
                     onClick={handleCheckout}
+                    disabled={isProcessing}
                   >
-                    Checkout
+                    {isProcessing ? 'Processing...' : 'Checkout'}
                   </Button>
+                  {!isAuthenticated && (
+                    <p className="text-xs text-center mt-2 text-gray-500">
+                      You need to be logged in to checkout
+                    </p>
+                  )}
                 </div>
               </>
             )}

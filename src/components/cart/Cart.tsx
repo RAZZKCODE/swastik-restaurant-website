@@ -63,7 +63,7 @@ const Cart = () => {
       // Create order items
       const orderItems = cartItems.map(item => ({
         order_id: order.id,
-        item_id: parseInt(item.id),
+        item_id: parseInt(item.id.toString()), // Convert id to string first to handle both string and number types
         name: item.name,
         price: parseFloat(item.price.replace('$', '')),
         quantity: item.quantity,

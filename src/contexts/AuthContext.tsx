@@ -76,14 +76,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     
     try {
+      // First try to authenticate with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
-      if (error) throw error;
+      if (error) {
+        // If Supabase auth fails, check local storage for admin user
+        const USERS_STORAGE_KEY = 'swastik_restaurant_users';
+        const storedUsersJson = localStorage.getItem(USERS_STORAGE_KEY);
+        
+        if (storedUsersJson) {
+          const storedUsers = JSON.parse(storedUsersJson);
+          const adminUser = storedUsers.find((user: any) => 
+            user.email === email && 
+            user.password === password && 
+            user.isAdmin === true
+          );
+          
+          if (adminUser) {
+            // Set the admin user manually since we're not using Supabase auth for this user
+            setUser({
+              id: adminUser.id,
+              email: adminUser.email,
+              name: adminUser.name,
+              isAdmin: true
+            });
+            
+            toast({
+              title: 'Admin Login Successful',
+              description: 'Welcome back, Administrator!',
+            });
+            
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // If no admin user found in localStorage either, throw error
+        throw new Error('Invalid admin credentials');
+      }
       
-      // Check if user has admin role
+      // If Supabase auth succeeds, check if user has admin role in Supabase
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -156,20 +191,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    // Handle both local storage admin and Supabase admin logout
     const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to log out',
-        variant: 'destructive',
-      });
-    } else {
-      setUser(null);
-      toast({
-        title: 'Logged Out',
-        description: 'You have been logged out successfully',
-      });
-    }
+    setUser(null);
+    
+    toast({
+      title: 'Logged Out',
+      description: 'You have been logged out successfully',
+    });
   };
 
   return (

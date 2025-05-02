@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Table, 
   TableBody, 
@@ -27,92 +27,158 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShoppingBag, Search, Filter, Eye } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
-// Mock data for orders
-const mockOrders = [
-  {
-    id: "ORD-001",
-    customer: "John Doe",
-    date: "2025-04-09",
-    total: 125.99,
-    status: "completed",
-    items: [
-      { name: "Butter Chicken", quantity: 1, price: 18.99 },
-      { name: "Garlic Naan", quantity: 2, price: 3.50 },
-      { name: "Mango Lassi", quantity: 2, price: 4.99 }
-    ]
-  },
-  {
-    id: "ORD-002",
-    customer: "Sarah Smith",
-    date: "2025-04-10",
-    total: 78.50,
-    status: "processing",
-    items: [
-      { name: "Vegetable Samosas", quantity: 2, price: 6.99 },
-      { name: "Paneer Tikka Masala", quantity: 1, price: 16.99 },
-      { name: "Plain Naan", quantity: 3, price: 2.99 }
-    ]
-  },
-  {
-    id: "ORD-003",
-    customer: "Mike Johnson",
-    date: "2025-04-10",
-    total: 45.75,
-    status: "pending",
-    items: [
-      { name: "Chicken Biryani", quantity: 1, price: 19.99 },
-      { name: "Raita", quantity: 1, price: 3.99 },
-      { name: "Mango Chutney", quantity: 1, price: 2.99 }
-    ]
-  },
-  {
-    id: "ORD-004",
-    customer: "Lisa Wong",
-    date: "2025-04-08",
-    total: 98.25,
-    status: "completed",
-    items: [
-      { name: "Tandoori Chicken", quantity: 1, price: 21.99 },
-      { name: "Pulao Rice", quantity: 2, price: 5.99 },
-      { name: "Gulab Jamun", quantity: 4, price: 6.99 }
-    ]
-  },
-  {
-    id: "ORD-005",
-    customer: "Robert Chen",
-    date: "2025-04-07",
-    total: 55.50,
-    status: "cancelled",
-    items: [
-      { name: "Vegetable Curry", quantity: 1, price: 14.99 },
-      { name: "Cheese Naan", quantity: 2, price: 4.50 },
-      { name: "Mango Kulfi", quantity: 2, price: 5.99 }
-    ]
-  }
-];
+// Order type definition
+interface OrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+interface Order {
+  id: string;
+  user_id: string;
+  customerName: string;
+  date: string;
+  total: number;
+  status: string;
+  items: OrderItem[];
+}
 
 const OrderManagement = () => {
-  const [orders] = useState(mockOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<typeof mockOrders[0] | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch orders
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (ordersError) throw ordersError;
+
+      // Fetch user profiles for customer names
+      const userIds = ordersData?.map(order => order.user_id) || [];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of user IDs to names
+      const userNameMap = new Map();
+      profilesData?.forEach(profile => {
+        userNameMap.set(profile.id, profile.name || 'Unknown User');
+      });
+
+      // Fetch order items for each order
+      const ordersWithItems = await Promise.all(
+        (ordersData || []).map(async (order) => {
+          const { data: items, error: itemsError } = await supabase
+            .from('order_items')
+            .select('*')
+            .eq('order_id', order.id);
+
+          if (itemsError) {
+            console.error('Error fetching order items:', itemsError);
+            return {
+              ...order,
+              customerName: userNameMap.get(order.user_id) || 'Unknown User',
+              date: format(new Date(order.created_at), 'yyyy-MM-dd'),
+              items: []
+            };
+          }
+
+          return {
+            ...order,
+            customerName: userNameMap.get(order.user_id) || 'Unknown User',
+            date: format(new Date(order.created_at), 'yyyy-MM-dd'),
+            items: items || []
+          };
+        })
+      );
+
+      setOrders(ordersWithItems);
+    } catch (err) {
+      const message = (err as Error).message;
+      toast({
+        title: 'Error fetching orders',
+        description: message,
+        variant: 'destructive',
+      });
+      console.error('Error fetching orders:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredOrders = orders.filter(order => 
     order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customer.toLowerCase().includes(searchTerm.toLowerCase())
+    order.customerName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const statusColors: Record<string, string> = {
     completed: "bg-green-100 text-green-800",
     processing: "bg-blue-100 text-blue-800",
+    preparing: "bg-blue-100 text-blue-800",
     pending: "bg-yellow-100 text-yellow-800",
-    cancelled: "bg-red-100 text-red-800"
+    cancelled: "bg-red-100 text-red-800",
+    "out for delivery": "bg-purple-100 text-purple-800",
+    delivered: "bg-green-100 text-green-800"
   };
 
-  const handleViewOrderDetails = (order: typeof mockOrders[0]) => {
+  const handleViewOrderDetails = (order: Order) => {
     setSelectedOrder(order);
     setIsOrderDetailsOpen(true);
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      // Update local state
+      setOrders(orders.map(order => 
+        order.id === orderId ? { ...order, status: newStatus } : order
+      ));
+
+      // Update selected order if open
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder({ ...selectedOrder, status: newStatus });
+      }
+
+      toast({
+        title: 'Order Updated',
+        description: `Order status changed to ${newStatus}`,
+      });
+    } catch (err) {
+      const message = (err as Error).message;
+      toast({
+        title: 'Error updating order',
+        description: message,
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -140,51 +206,57 @@ const OrderManagement = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredOrders.length > 0 ? (
-                filteredOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>{order.customer}</TableCell>
-                    <TableCell>{order.date}</TableCell>
-                    <TableCell>${order.total.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[order.status]}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleViewOrderDetails(order)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <p>Loading orders...</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredOrders.length > 0 ? (
+                  filteredOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">{order.id.slice(0, 8)}</TableCell>
+                      <TableCell>{order.customerName}</TableCell>
+                      <TableCell>{order.date}</TableCell>
+                      <TableCell>${order.total.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[order.status] || "bg-gray-100 text-gray-800"}>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewOrderDetails(order)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                      No orders found.
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
-                    No orders found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -197,7 +269,7 @@ const OrderManagement = () => {
               Order Details
             </SheetTitle>
             <SheetDescription>
-              {selectedOrder ? `Order ID: ${selectedOrder.id}` : ""}
+              {selectedOrder ? `Order ID: ${selectedOrder.id.slice(0, 8)}` : ""}
             </SheetDescription>
           </SheetHeader>
           
@@ -205,14 +277,16 @@ const OrderManagement = () => {
             <div className="mt-6 space-y-6">
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Customer Information</h3>
-                <p className="mt-1 text-sm">{selectedOrder.customer}</p>
+                <p className="mt-1 text-sm">{selectedOrder.customerName}</p>
               </div>
               
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Order Status</h3>
-                <Badge className={`mt-1 ${statusColors[selectedOrder.status]}`}>
-                  {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
-                </Badge>
+                <div className="mt-1 flex items-center space-x-2">
+                  <Badge className={statusColors[selectedOrder.status] || "bg-gray-100 text-gray-800"}>
+                    {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                  </Badge>
+                </div>
               </div>
               
               <div>
@@ -242,15 +316,33 @@ const OrderManagement = () => {
                 </div>
               </div>
               
-              <div className="flex space-x-2 pt-4">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Update Status</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {["pending", "processing", "preparing", "out for delivery", "delivered", "completed", "cancelled"].map(
+                    (status) => (
+                      <Button 
+                        key={status}
+                        size="sm"
+                        variant={selectedOrder.status === status ? "default" : "outline"}
+                        className="text-xs"
+                        onClick={() => updateOrderStatus(selectedOrder.id, status)}
+                      >
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </Button>
+                    )
+                  )}
+                </div>
+              </div>
+              
+              <div className="pt-4">
                 <Button 
-                  className="flex-1"
                   variant="outline"
+                  className="w-full"
                   onClick={() => setIsOrderDetailsOpen(false)}
                 >
                   Close
                 </Button>
-                <Button className="flex-1">Update Status</Button>
               </div>
             </div>
           )}
@@ -261,3 +353,4 @@ const OrderManagement = () => {
 };
 
 export default OrderManagement;
+

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { 
@@ -16,19 +16,69 @@ import SettingsManagement from "@/components/admin/SettingsManagement";
 import MenuManagement from "@/components/admin/MenuManagement";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { useAuth } from "@/contexts/AuthContext";
-import { ShoppingBag, Users, Coffee, Settings } from "lucide-react";
+import { ShoppingBag, Users, Coffee, Settings, RefreshCw, DollarSign } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("orders");
+  const [dashboardStats, setDashboardStats] = useState([
+    { title: "Total Users", value: "...", icon: Users, color: "bg-blue-100 text-blue-800" },
+    { title: "Active Orders", value: "...", icon: ShoppingBag, color: "bg-orange-100 text-orange-800" },
+    { title: "Menu Items", value: "...", icon: Coffee, color: "bg-green-100 text-green-800" },
+    { title: "Total Revenue", value: "...", icon: DollarSign, color: "bg-purple-100 text-purple-800" }
+  ]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Dashboard summary stats
-  const dashboardStats = [
-    { title: "Total Users", value: "103", icon: Users, color: "bg-blue-100 text-blue-800" },
-    { title: "Active Orders", value: "24", icon: ShoppingBag, color: "bg-orange-100 text-orange-800" },
-    { title: "Menu Items", value: "48", icon: Coffee, color: "bg-green-100 text-green-800" },
-    { title: "Total Revenue", value: "$12,486", icon: Settings, color: "bg-purple-100 text-purple-800" }
-  ];
+  // Fetch dashboard statistics
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch user count
+        const { count: userCount, error: userError } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+        
+        if (userError) throw userError;
+
+        // Fetch active orders (pending, processing, preparing, out for delivery)
+        const { count: activeOrdersCount, error: ordersError } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .in('status', ['pending', 'processing', 'preparing', 'out for delivery']);
+        
+        if (ordersError) throw ordersError;
+
+        // Fetch menu items count (placeholder - you would need a menu_items table)
+        const menuItemsCount = 48; // Placeholder - replace with actual query once table exists
+
+        // Calculate total revenue
+        const { data: revenueData, error: revenueError } = await supabase
+          .from('orders')
+          .select('total')
+          .in('status', ['delivered', 'completed']);
+        
+        if (revenueError) throw revenueError;
+        
+        const totalRevenue = revenueData?.reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0) || 0;
+
+        // Update dashboard stats
+        setDashboardStats([
+          { title: "Total Users", value: userCount?.toString() || "0", icon: Users, color: "bg-blue-100 text-blue-800" },
+          { title: "Active Orders", value: activeOrdersCount?.toString() || "0", icon: ShoppingBag, color: "bg-orange-100 text-orange-800" },
+          { title: "Menu Items", value: menuItemsCount.toString(), icon: Coffee, color: "bg-green-100 text-green-800" },
+          { title: "Total Revenue", value: `$${totalRevenue.toFixed(2)}`, icon: DollarSign, color: "bg-purple-100 text-purple-800" }
+        ]);
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
 
   return (
     <>
@@ -64,7 +114,14 @@ const AdminDashboard = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
+                      {isLoading ? (
+                        <div className="flex items-center space-x-2">
+                          <RefreshCw className="h-4 w-4 animate-spin text-restaurant-500" />
+                          <span className="text-sm">Loading...</span>
+                        </div>
+                      ) : (
+                        <p className="text-2xl font-bold">{stat.value}</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

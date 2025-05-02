@@ -37,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import OrderTracking from "../OrderTracking";
+import { useOrders } from "@/hooks/use-orders";
 
 // Order type definition
 interface OrderItem {
@@ -57,6 +58,7 @@ interface Order {
 }
 
 const OrderManagement = () => {
+  const { orders: fetchedOrders, isLoading: isOrdersLoading, error: ordersError, fetchOrders } = useOrders();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -66,30 +68,22 @@ const OrderManagement = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    enhanceOrdersWithCustomerNames();
+  }, [fetchedOrders]);
 
-  const fetchOrders = async () => {
+  const enhanceOrdersWithCustomerNames = async () => {
+    if (!fetchedOrders || fetchedOrders.length === 0) {
+      setOrders([]);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     
     try {
-      // Fetch orders
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (ordersError) throw ordersError;
-      
-      if (!ordersData || ordersData.length === 0) {
-        setOrders([]);
-        setIsLoading(false);
-        return;
-      }
-
       // Fetch user profiles for customer names
-      const userIds = ordersData.map(order => order.user_id);
+      const userIds = fetchedOrders.map(order => order.user_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, name')
@@ -103,45 +97,19 @@ const OrderManagement = () => {
         userNameMap.set(profile.id, profile.name || 'Unknown User');
       });
 
-      // Fetch order items for each order
-      const ordersWithItems = await Promise.all(
-        ordersData.map(async (order) => {
-          const { data: items, error: itemsError } = await supabase
-            .from('order_items')
-            .select('*')
-            .eq('order_id', order.id);
+      // Transform orders data
+      const enhancedOrders = fetchedOrders.map(order => ({
+        ...order,
+        customerName: userNameMap.get(order.user_id) || 'Unknown User',
+        date: format(new Date(order.created_at), 'PPP'),
+      }));
 
-          if (itemsError) {
-            console.error('Error fetching order items:', itemsError);
-            return {
-              ...order,
-              customerName: userNameMap.get(order.user_id) || 'Unknown User',
-              date: format(new Date(order.created_at), 'PPP'),
-              items: []
-            };
-          }
-
-          return {
-            ...order,
-            customerName: userNameMap.get(order.user_id) || 'Unknown User',
-            date: format(new Date(order.created_at), 'PPP'),
-            items: items || []
-          };
-        })
-      );
-
-      setOrders(ordersWithItems);
-      if (ordersWithItems.length === 0) {
-        toast({
-          title: 'No orders found',
-          description: 'There are no orders in the system.',
-        });
-      }
+      setOrders(enhancedOrders);
     } catch (err) {
       const message = (err as Error).message;
       setError(message);
       toast({
-        title: 'Error fetching orders',
+        title: 'Error enhancing orders with customer names',
         description: message,
         variant: 'destructive',
       });
@@ -189,6 +157,9 @@ const OrderManagement = () => {
         setSelectedOrder({ ...selectedOrder, status: newStatus });
       }
 
+      // Refresh orders list to ensure we have the latest data
+      fetchOrders();
+
       toast({
         title: 'Order Updated',
         description: `Order status changed to ${newStatus}`,
@@ -233,14 +204,14 @@ const OrderManagement = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {error && (
+          {(error || ordersError) && (
             <div className="mb-4 p-4 bg-red-50 text-red-800 rounded-md flex items-center">
               <AlertCircle className="h-5 w-5 mr-2" />
-              <p>Error loading orders: {error}</p>
+              <p>Error loading orders: {error || ordersError}</p>
             </div>
           )}
           
-          {isLoading ? (
+          {(isLoading || isOrdersLoading) ? (
             <div className="flex justify-center items-center h-64">
               <div className="flex flex-col items-center">
                 <RefreshCw className="h-8 w-8 text-restaurant-500 animate-spin" />

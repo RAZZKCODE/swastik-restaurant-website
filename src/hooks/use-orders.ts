@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,9 +20,9 @@ export interface Order {
   total: number;
   created_at: string;
   updated_at: string;
-  items?: OrderItem[]; // Changed from required to optional
-  customerName?: string; // Added this field to accommodate the enhancement
-  date?: string; // Added this field to accommodate the enhancement
+  items?: OrderItem[]; // Optional since we may not always fetch items
+  customerName?: string; // Added for UI display
+  date?: string; // Added for formatted date display
 }
 
 export const useOrders = () => {
@@ -35,13 +36,17 @@ export const useOrders = () => {
     setError(null);
 
     try {
-      // Fetch orders
+      // Fetch all orders with no filtering to ensure we get everything
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (ordersError) throw ordersError;
+      if (ordersError) {
+        throw ordersError;
+      }
+
+      console.log('Fetched orders:', ordersData?.length || 0);
 
       if (!ordersData || ordersData.length === 0) {
         setOrders([]);
@@ -75,6 +80,7 @@ export const useOrders = () => {
         description: message,
         variant: 'destructive',
       });
+      console.error('Error in fetchOrders:', err);
     } finally {
       setIsLoading(false);
     }

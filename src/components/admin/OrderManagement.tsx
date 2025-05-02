@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { 
   Table, 
@@ -49,6 +50,8 @@ const OrderManagement = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Immediately log to help with debugging
+    console.log("Fetched orders received:", fetchedOrders?.length || 0);
     enhanceOrdersWithCustomerNames();
   }, [fetchedOrders]);
 
@@ -56,6 +59,7 @@ const OrderManagement = () => {
     if (!fetchedOrders || fetchedOrders.length === 0) {
       setOrders([]);
       setIsLoading(false);
+      console.log("No orders to enhance");
       return;
     }
 
@@ -65,12 +69,16 @@ const OrderManagement = () => {
     try {
       // Fetch user profiles for customer names
       const userIds = fetchedOrders.map(order => order.user_id);
+      console.log("Fetching profiles for user IDs:", userIds);
+      
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, name')
         .in('id', userIds);
 
       if (profilesError) throw profilesError;
+      
+      console.log("Profiles fetched:", profilesData?.length || 0);
 
       // Create a map of user IDs to names
       const userNameMap = new Map();
@@ -85,10 +93,12 @@ const OrderManagement = () => {
         date: format(new Date(order.created_at), 'PPP'),
       }));
 
+      console.log("Enhanced orders:", enhancedOrders.length);
       setOrders(enhancedOrders);
     } catch (err) {
       const message = (err as Error).message;
       setError(message);
+      console.error("Error enhancing orders:", err);
       toast({
         title: 'Error enhancing orders with customer names',
         description: message,
@@ -99,9 +109,18 @@ const OrderManagement = () => {
     }
   };
 
+  // Handle manual refresh
+  const handleRefresh = () => {
+    fetchOrders();
+    toast({
+      title: 'Refreshing Orders',
+      description: 'Fetching the latest orders from the database',
+    });
+  };
+
   const filteredOrders = orders.filter(order => 
     order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) || ''
+    (order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
   );
 
   const statusColors: Record<string, string> = {
@@ -177,7 +196,7 @@ const OrderManagement = () => {
             <Button 
               variant="outline" 
               size="icon"
-              onClick={fetchOrders}
+              onClick={handleRefresh}
               title="Refresh orders"
             >
               <RefreshCw className="h-4 w-4" />
@@ -217,8 +236,8 @@ const OrderManagement = () => {
                     filteredOrders.map((order) => (
                       <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
                         <TableCell className="font-medium">{order.id.slice(0, 8)}</TableCell>
-                        <TableCell>{order.customerName}</TableCell>
-                        <TableCell>{order.date}</TableCell>
+                        <TableCell>{order.customerName || 'Unknown User'}</TableCell>
+                        <TableCell>{order.date || format(new Date(order.created_at), 'PPP')}</TableCell>
                         <TableCell>${order.total.toFixed(2)}</TableCell>
                         <TableCell>
                           <Badge className={statusColors[order.status] || "bg-gray-100 text-gray-800"}>

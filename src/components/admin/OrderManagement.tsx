@@ -25,11 +25,18 @@ import {
   SheetTitle
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ShoppingBag, Search, Filter, Eye } from "lucide-react";
+import { 
+  Search, 
+  Filter, 
+  Eye, 
+  ShoppingBag, 
+  AlertCircle, 
+  RefreshCw 
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import OrderTracking from "../OrderTracking";
 
 // Order type definition
 interface OrderItem {
@@ -55,6 +62,7 @@ const OrderManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,6 +71,8 @@ const OrderManagement = () => {
 
   const fetchOrders = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
       // Fetch orders
       const { data: ordersData, error: ordersError } = await supabase
@@ -71,9 +81,15 @@ const OrderManagement = () => {
         .order('created_at', { ascending: false });
 
       if (ordersError) throw ordersError;
+      
+      if (!ordersData || ordersData.length === 0) {
+        setOrders([]);
+        setIsLoading(false);
+        return;
+      }
 
       // Fetch user profiles for customer names
-      const userIds = ordersData?.map(order => order.user_id) || [];
+      const userIds = ordersData.map(order => order.user_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, name')
@@ -89,7 +105,7 @@ const OrderManagement = () => {
 
       // Fetch order items for each order
       const ordersWithItems = await Promise.all(
-        (ordersData || []).map(async (order) => {
+        ordersData.map(async (order) => {
           const { data: items, error: itemsError } = await supabase
             .from('order_items')
             .select('*')
@@ -100,7 +116,7 @@ const OrderManagement = () => {
             return {
               ...order,
               customerName: userNameMap.get(order.user_id) || 'Unknown User',
-              date: format(new Date(order.created_at), 'yyyy-MM-dd'),
+              date: format(new Date(order.created_at), 'PPP'),
               items: []
             };
           }
@@ -108,21 +124,27 @@ const OrderManagement = () => {
           return {
             ...order,
             customerName: userNameMap.get(order.user_id) || 'Unknown User',
-            date: format(new Date(order.created_at), 'yyyy-MM-dd'),
+            date: format(new Date(order.created_at), 'PPP'),
             items: items || []
           };
         })
       );
 
       setOrders(ordersWithItems);
+      if (ordersWithItems.length === 0) {
+        toast({
+          title: 'No orders found',
+          description: 'There are no orders in the system.',
+        });
+      }
     } catch (err) {
       const message = (err as Error).message;
+      setError(message);
       toast({
         title: 'Error fetching orders',
         description: message,
         variant: 'destructive',
       });
-      console.error('Error fetching orders:', err);
     } finally {
       setIsLoading(false);
     }
@@ -136,8 +158,8 @@ const OrderManagement = () => {
   const statusColors: Record<string, string> = {
     completed: "bg-green-100 text-green-800",
     processing: "bg-blue-100 text-blue-800",
-    preparing: "bg-blue-100 text-blue-800",
-    pending: "bg-yellow-100 text-yellow-800",
+    preparing: "bg-yellow-100 text-yellow-800",
+    pending: "bg-orange-100 text-orange-800",
     cancelled: "bg-red-100 text-red-800",
     "out for delivery": "bg-purple-100 text-purple-800",
     delivered: "bg-green-100 text-green-800"
@@ -183,11 +205,11 @@ const OrderManagement = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row justify-between items-center">
+      <Card className="border-restaurant-100 shadow-md">
+        <CardHeader className="flex flex-row justify-between items-center bg-gradient-to-r from-restaurant-50 to-white">
           <div>
-            <CardTitle className="text-2xl">Order Management</CardTitle>
-            <CardDescription>View and manage all customer orders</CardDescription>
+            <CardTitle className="text-2xl text-restaurant-800">Order Management</CardTitle>
+            <CardDescription>View and manage customer orders</CardDescription>
           </div>
           <div className="flex items-center space-x-2">
             <div className="relative">
@@ -200,71 +222,91 @@ const OrderManagement = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="icon">
-              <Filter className="h-4 w-4" />
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={fetchOrders}
+              title="Refresh orders"
+            >
+              <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 text-red-800 rounded-md flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2" />
+              <p>Error loading orders: {error}</p>
+            </div>
+          )}
+          
           {isLoading ? (
-            <div className="flex justify-center items-center h-32">
-              <p>Loading orders...</p>
+            <div className="flex justify-center items-center h-64">
+              <div className="flex flex-col items-center">
+                <RefreshCw className="h-8 w-8 text-restaurant-500 animate-spin" />
+                <p className="mt-4 text-restaurant-600">Loading orders...</p>
+              </div>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders.length > 0 ? (
-                  filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id.slice(0, 8)}</TableCell>
-                      <TableCell>{order.customerName}</TableCell>
-                      <TableCell>{order.date}</TableCell>
-                      <TableCell>${order.total.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge className={statusColors[order.status] || "bg-gray-100 text-gray-800"}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleViewOrderDetails(order)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-medium">Order ID</TableHead>
+                    <TableHead className="font-medium">Customer</TableHead>
+                    <TableHead className="font-medium">Date</TableHead>
+                    <TableHead className="font-medium">Total</TableHead>
+                    <TableHead className="font-medium">Status</TableHead>
+                    <TableHead className="text-right font-medium">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrders.length > 0 ? (
+                    filteredOrders.map((order) => (
+                      <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
+                        <TableCell className="font-medium">{order.id.slice(0, 8)}</TableCell>
+                        <TableCell>{order.customerName}</TableCell>
+                        <TableCell>{order.date}</TableCell>
+                        <TableCell>${order.total.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge className={statusColors[order.status] || "bg-gray-100 text-gray-800"}>
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleViewOrderDetails(order)}
+                            className="text-restaurant-600 hover:text-restaurant-800 hover:bg-restaurant-50"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        {searchTerm ? 
+                          "No orders found matching your search." : 
+                          "No orders found. Orders will appear here when customers place them."}
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      No orders found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Order Details Sheet */}
       <Sheet open={isOrderDetailsOpen} onOpenChange={setIsOrderDetailsOpen}>
-        <SheetContent className="w-[400px] sm:w-[540px]">
+        <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle className="flex items-center">
+            <SheetTitle className="flex items-center text-restaurant-700">
               <ShoppingBag className="mr-2 h-5 w-5" />
               Order Details
             </SheetTitle>
@@ -288,6 +330,11 @@ const OrderManagement = () => {
                   </Badge>
                 </div>
               </div>
+
+              {/* Order Tracking */}
+              <div className="py-2">
+                <OrderTracking orderId={selectedOrder.id} currentStatus={selectedOrder.status} />
+              </div>
               
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Order Date</h3>
@@ -297,15 +344,19 @@ const OrderManagement = () => {
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Order Items</h3>
                 <ul className="mt-2 divide-y divide-gray-200">
-                  {selectedOrder.items.map((item, index) => (
-                    <li key={index} className="py-2 flex justify-between">
-                      <div>
-                        <p className="text-sm font-medium">{item.name}</p>
-                        <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                      </div>
-                      <p className="text-sm">${(item.price * item.quantity).toFixed(2)}</p>
-                    </li>
-                  ))}
+                  {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                    selectedOrder.items.map((item, index) => (
+                      <li key={index} className="py-2 flex justify-between">
+                        <div>
+                          <p className="text-sm font-medium">{item.name}</p>
+                          <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                        </div>
+                        <p className="text-sm">${(item.price * item.quantity).toFixed(2)}</p>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="py-2 text-sm text-gray-500">No items found for this order.</li>
+                  )}
                 </ul>
               </div>
               
@@ -325,7 +376,7 @@ const OrderManagement = () => {
                         key={status}
                         size="sm"
                         variant={selectedOrder.status === status ? "default" : "outline"}
-                        className="text-xs"
+                        className={selectedOrder.status === status ? "bg-restaurant-500 hover:bg-restaurant-600" : "text-xs"}
                         onClick={() => updateOrderStatus(selectedOrder.id, status)}
                       >
                         {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -353,4 +404,3 @@ const OrderManagement = () => {
 };
 
 export default OrderManagement;
-

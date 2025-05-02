@@ -52,6 +52,7 @@ const AdminDashboard = () => {
 
         // Fetch menu items count (placeholder - you would need a menu_items table)
         const menuItemsCount = 48; // Placeholder - replace with actual query once table exists
+        const menuItemsString = menuItemsCount.toString(); // Convert to string explicitly
 
         // Calculate total revenue
         const { data: revenueData, error: revenueError } = await supabase
@@ -67,7 +68,7 @@ const AdminDashboard = () => {
         setDashboardStats([
           { title: "Total Users", value: userCount?.toString() || "0", icon: Users, color: "bg-blue-100 text-blue-800" },
           { title: "Active Orders", value: activeOrdersCount?.toString() || "0", icon: ShoppingBag, color: "bg-orange-100 text-orange-800" },
-          { title: "Menu Items", value: menuItemsCount.toString(), icon: Coffee, color: "bg-green-100 text-green-800" },
+          { title: "Menu Items", value: menuItemsString, icon: Coffee, color: "bg-green-100 text-green-800" },
           { title: "Total Revenue", value: `$${totalRevenue.toFixed(2)}`, icon: DollarSign, color: "bg-purple-100 text-purple-800" }
         ]);
       } catch (error) {

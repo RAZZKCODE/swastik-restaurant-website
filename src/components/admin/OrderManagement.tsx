@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Table, 
@@ -37,25 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import OrderTracking from "../OrderTracking";
-import { useOrders } from "@/hooks/use-orders";
-
-// Order type definition
-interface OrderItem {
-  id: string;
-  name: string;
-  quantity: number;
-  price: number;
-}
-
-interface Order {
-  id: string;
-  user_id: string;
-  customerName: string;
-  date: string;
-  total: number;
-  status: string;
-  items: OrderItem[];
-}
+import { useOrders, Order } from "@/hooks/use-orders";
 
 const OrderManagement = () => {
   const { orders: fetchedOrders, isLoading: isOrdersLoading, error: ordersError, fetchOrders } = useOrders();
@@ -98,7 +79,7 @@ const OrderManagement = () => {
       });
 
       // Transform orders data
-      const enhancedOrders = fetchedOrders.map(order => ({
+      const enhancedOrders: Order[] = fetchedOrders.map(order => ({
         ...order,
         customerName: userNameMap.get(order.user_id) || 'Unknown User',
         date: format(new Date(order.created_at), 'PPP'),
@@ -120,7 +101,7 @@ const OrderManagement = () => {
 
   const filteredOrders = orders.filter(order => 
     order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customerName.toLowerCase().includes(searchTerm.toLowerCase())
+    order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) || ''
   );
 
   const statusColors: Record<string, string> = {

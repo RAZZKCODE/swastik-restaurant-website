@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +19,9 @@ export interface Order {
   total: number;
   created_at: string;
   updated_at: string;
-  items?: OrderItem[];
+  items?: OrderItem[]; // Changed from required to optional
+  customerName?: string; // Added this field to accommodate the enhancement
+  date?: string; // Added this field to accommodate the enhancement
 }
 
 export const useOrders = () => {
